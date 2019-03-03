@@ -72,8 +72,8 @@ def populatefs(root, verbose):
                     lmsg = len('Populating ') + len(child.path()) +\
                         len(child.name()) + 3
                     if lmsg < 80:
-                        msg = 'Populating ' + child.path() + child.name() +\
-                            '...'
+                        msg = 'Populating ' + child.path() + '/' +\
+                            child.name() + '...'
                     else:
                         msg = 'Populating ' + child.path()[:-(lmsg-84)] +\
                             '...' + '/' + child.name() + '...'
