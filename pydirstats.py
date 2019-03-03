@@ -87,6 +87,30 @@ def populatefs(root, verbose):
         print(msg, end='\r', sep='')
 
 
+def humanreadable(num):
+    res = num / 1024
+    if res < 1000:
+        return "{:.1f}K".format(res)
+    res = res / 1024
+    if res < 1000:
+        return "{:.1f}M".format(res)
+    res = res / 1024
+    if res < 1000:
+        return "{:.1f}G".format(res)
+    res = res / 1024
+    return "{:.1f}T".format(res)
+
+
+def getfiles(node):
+    fdic = dict()
+    for child in node.children():
+        if child.is_dir():
+            fdic = {**fdic, **getfiles(child)}
+        else:
+            fdic[child.path() + '/' + child.name()] = child.size()
+    return fdic
+
+
 FS = None
 
 
@@ -108,7 +132,32 @@ def main():
     if dirstr[len(dirstr)-1] == '/':
         dirstr = dirstr[:len(dirstr)-1]
     populatefs(dirstr, options.verbose)
-    print('Total size:', FS.size())
+    print('Total size:', humanreadable(FS.size()))
+    print('\nTen largest subfolders:')
+    folder = dict()
+    for child in FS.children():
+        if child.is_dir():
+            folder[child.name()] = child.size()
+    sorted_by_value = sorted(folder.items(), key=lambda kv: kv[1],
+                             reverse=True)
+    count = 0
+    for val in sorted_by_value:
+        count += 1
+        print(val[0], ': ', humanreadable(val[1]), sep='')
+        if count == 10:
+            break
+    folder = None
+    print('\nTen largest files:')
+    files = dict()
+    files = getfiles(FS)
+    sorted_by_value = sorted(files.items(), key=lambda kv: kv[1],
+                             reverse=True)
+    count = 0
+    for val in sorted_by_value:
+        count += 1
+        print(val[0], ': ', humanreadable(val[1]), sep='')
+        if count == 10:
+            break
 
 
 if __name__ == "__main__":
