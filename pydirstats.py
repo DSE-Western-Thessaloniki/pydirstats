@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os
+from optparse import OptionParser
 
 
 class FSNode:
@@ -9,7 +10,7 @@ class FSNode:
         self.__fname = filename
         self.__parent = parent
         self.__children = []
-        self.__attr = os.stat(path+'/'+filename)
+        self.__attr = os.stat(path+'/'+filename, follow_symlinks=False)
         self.__cache = dict()
         self.__isdir = isdir
 
@@ -30,12 +31,15 @@ class FSNode:
 
     def find_children(self):
         path = self.__fspath + '/' + self.__fname
-        with os.scandir(path) as it:
-            for entry in it:
-                # print('Found', entry.name, 'dir:',
-                # entry.is_dir(follow_symlinks=False))
-                self.__children.append(FSNode(path, entry.name,
-                                              entry.is_dir(follow_symlinks=False)))
+        try:
+            with os.scandir(path) as it:
+                for entry in it:
+                    # print('Found', entry.name, 'dir:',
+                    # entry.is_dir(follow_symlinks=False))
+                    self.__children.append(FSNode(path, entry.name,
+                                                  entry.is_dir(follow_symlinks=False)))
+        except PermissionError as e:
+            print(e.strerror, ': \'', e.filename, '\'', sep='')
 
     def clear_cache(self):
         self.__cache = None
@@ -51,22 +55,61 @@ class FSNode:
         return self.__fspath
 
 
-def populatefs(root):
+def populatefs(root, verbose):
     global FS
     FS = FSNode(os.path.dirname(root), os.path.basename(root), True)
     FS.find_children()
     tmp = FS.children()
+    msg = ''
     while tmp:
         tmp2 = []
         for child in tmp:
             if child.is_dir():
-                print('Populating', child.path() + child.name(), '\r')
+                if verbose:
+                    msg = [' '] * len(msg)
+                    msg = ''.join(msg)
+                    print(msg, end='\r', sep='')
+                    lmsg = len('Populating ') + len(child.path()) +\
+                        len(child.name()) + 3
+                    if lmsg < 80:
+                        msg = 'Populating ' + child.path() + child.name() +\
+                            '...'
+                    else:
+                        msg = 'Populating ' + child.path()[:-(lmsg-84)] +\
+                            '...' + '/' + child.name() + '...'
+                    print(msg, end='\r', sep='')
                 child.find_children()
                 tmp2.extend(child.children())
         tmp = tmp2
+    if verbose:
+        msg = [' '] * len(msg)
+        msg = ''.join(msg)
+        print(msg, end='\r', sep='')
 
 
 FS = None
 
-populatefs('/home/oscar/Projects')
-print(FS.size())
+
+def main():
+    parser = OptionParser()
+    parser.add_option('-d', '--directory', dest='dirname',
+                      help='directory to parse', metavar='DIRECTORY')
+    parser.add_option('-q', '--quiet', action='store_false', dest='verbose',
+                      default=True, help='don\'t print status messages to stdout')
+    (options, args) = parser.parse_args()
+    if options.dirname is None:
+        parser.print_help()
+        exit()
+    # print('Dirname:', options.dirname)
+    # print('Verbose:', options.verbose)
+
+    # Strip trailing slash
+    dirstr = options.dirname
+    if dirstr[len(dirstr)-1] == '/':
+        dirstr = dirstr[:len(dirstr)-1]
+    populatefs(dirstr, options.verbose)
+    print('Total size:', FS.size())
+
+
+if __name__ == "__main__":
+    main()
