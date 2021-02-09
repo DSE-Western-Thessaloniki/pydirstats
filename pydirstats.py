@@ -118,6 +118,8 @@ def main():
     parser = OptionParser()
     parser.add_option('-d', '--directory', dest='dirname',
                       help='directory to parse', metavar='DIRECTORY')
+    parser.add_option('-c', '--count', dest='results', type="int",
+                      help='show at most NUM biggest results', default=10, metavar='NUM')
     parser.add_option('-q', '--quiet', action='store_false', dest='verbose',
                       default=True, help='don\'t print status messages to stdout')
     (options, args) = parser.parse_args()
@@ -144,7 +146,7 @@ def main():
     for val in sorted_by_value:
         count += 1
         print(val[0], ': ', humanreadable(val[1]), sep='')
-        if count == 10:
+        if count == options.results:
             break
     folder = None
     print('\nTen largest files:')
@@ -156,7 +158,7 @@ def main():
     for val in sorted_by_value:
         count += 1
         print(val[0], ': ', humanreadable(val[1]), sep='')
-        if count == 10:
+        if count == options.results:
             break
 
 
