@@ -40,6 +40,8 @@ class FSNode:
                                                   entry.is_dir(follow_symlinks=False)))
         except PermissionError as e:
             print(e.strerror, ': \'', e.filename, '\'', sep='')
+        except FileNotFoundError as e:
+            print(e.strerror, ': \'', e.filename, '\'', sep='')
 
     def clear_cache(self):
         self.__cache = None
